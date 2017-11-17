@@ -18,9 +18,11 @@ class tarmak::worker {
   }
 
   $kubelet_base_path = "${::tarmak::kubernetes_ssl_dir}/kubelet"
+  #$region=$::ec2_metadata['placement']['availability-zone'][0,-2]
+  $nodename = "${::tarmak::hostname}.${::tarmak::cluster_name}.${::tarmak::dns_root}"
   vault_client::cert_service { 'kubelet':
     base_path   => $kubelet_base_path,
-    common_name => 'system:node',
+    common_name => "system:node:${nodename}",
     role        => "${::tarmak::cluster_name}/pki/${::tarmak::kubernetes_ca_name}/sign/kubelet",
     uid         => $::tarmak::kubernetes_uid,
     require     => [
