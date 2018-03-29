@@ -65,16 +65,17 @@ func (r *tarmakRPC) VaultInstanceRole(args *VaultInstanceRoleArgs, result *Vault
 	token := ""
 	for i := 1; i <= Retries; i++ {
 		if args.Create {
-			token, err = k.EnsureInitToken(roleName)
-			if err == nil {
-				break
-			}
-		} else {
-			token, err = k.GetInitToken(roleName)
-			if err == nil {
-				break
+			if err := k.Ensure(); err != nil {
+				continue
 			}
 		}
+
+		var ok bool
+		token, ok = k.InitTokens()[roleName]
+		if ok && token != "" {
+			break
+		}
+
 		time.Sleep(time.Second)
 	}
 	if err != nil {
