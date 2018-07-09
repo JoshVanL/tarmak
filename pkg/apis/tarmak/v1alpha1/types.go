@@ -42,11 +42,23 @@ type Provider struct {
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
 	Amazon *ProviderAmazon `json:"amazon,omitempty"`
+	EKS    *ProviderEKS    `json:"eks,omitempty"`
 	GCP    *ProviderGCP    `json:"gcp,omitempty"`
 	Azure  *ProviderAzure  `json:"azure,omitempty"`
 }
 
 type ProviderAmazon struct {
+	VaultPath         string   `json:"vaultPath,omitempty"`
+	AllowedAccountIDs []string `json:"allowedAccountIDs,omitempty"`
+	Profile           string   `json:"profile,omitempty"`
+	BucketPrefix      string   `json:"bucketPrefix,omitempty"`
+	KeyName           string   `json:"keyName,omitempty"`
+
+	PublicZone         string `json:"publicZone,omitempty"`
+	PublicHostedZoneID string `json:"publicHostedZoneID,omitempty"`
+}
+
+type ProviderEKS struct {
 	VaultPath         string   `json:"vaultPath,omitempty"`
 	AllowedAccountIDs []string `json:"allowedAccountIDs,omitempty"`
 	Profile           string   `json:"profile,omitempty"`

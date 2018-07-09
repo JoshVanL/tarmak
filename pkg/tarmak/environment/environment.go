@@ -59,7 +59,7 @@ func NewFromConfig(tarmak interfaces.Tarmak, conf *tarmakv1alpha1.Environment, c
 	// init provider
 	e.provider, err = tarmak.ProviderByName(conf.Provider)
 	if err != nil {
-		return nil, fmt.Errorf("error initializing provider '%s'", conf.Provider)
+		return nil, fmt.Errorf("error initializing provider '%s': %v", conf.Provider, err)
 	}
 
 	// TODO RENABLE

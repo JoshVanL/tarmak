@@ -20,7 +20,7 @@ func (t *Tarmak) providerByNameReal(providerName string) (interfaces.Provider, e
 
 	prov, err := provider.NewFromConfig(t, providerConfig)
 	if err != nil {
-		return nil, fmt.Errorf("error initializing provider '%s': %s", providerName, err)
+		return nil, fmt.Errorf("foo error initializing provider '%s': %s", providerName, err)
 	}
 	return prov, nil
 }

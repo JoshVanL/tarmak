@@ -21,6 +21,7 @@ import (
 
 const (
 	CloudAmazon       = "amazon"
+	CloudEKS          = "eks"
 	CloudAzure        = "azure"
 	CloudGoogle       = "google"
 	CloudBaremetal    = "baremetal"
@@ -67,10 +68,20 @@ type Cluster struct {
 
 	// Amazon specific options
 	Amazon *ClusterAmazon `json:"amazon"`
+
+	// EKS specific options
+	EKS *ClusterEKS `json:"amazon"`
 }
 
 // Amazon specific settings for that instance pool
 type ClusterAmazon struct {
+	// This fields contains ARNs for additional IAM policies to be added to this
+	// instance pool
+	AdditionalIAMPolicies []string `json:"additionalIAMPolicies,omitempty"`
+}
+
+// EKS specific settings for that instance pool
+type ClusterEKS struct {
 	// This fields contains ARNs for additional IAM policies to be added to this
 	// instance pool
 	AdditionalIAMPolicies []string `json:"additionalIAMPolicies,omitempty"`

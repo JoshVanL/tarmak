@@ -73,7 +73,8 @@ func (i *image) Build(ctx context.Context) (amiID string, err error) {
 	buildSourcePath := filepath.Join(
 		rootPath,
 		"packer",
-		i.tarmak.Cluster().Environment().Provider().Cloud(),
+		//i.tarmak.Cluster().Environment().Provider().Cloud(),
+		"amazon",
 		fmt.Sprintf("%s.json", i.imageName),
 	)
 

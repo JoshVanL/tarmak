@@ -1,0 +1,251 @@
+{{/* vim: set ft=tf: */ -}}
+{{ $instancePool := . -}}
+
+data "template_file" "{{.TFName}}_user_data" {
+{{ if .Role.Stateful -}}
+  count    = "${var.{{.TFName}}_min_count}"
+{{ end -}}
+{{ if eq .Name "jenkins" -}}
+  template = "${file("${path.module}/templates/jenkins_user_data.yaml")}"
+  vars {
+    region = "${var.region}"
+    fqdn   = "jenkins.${var.private_zone}"
+    volume_id = "${element(aws_ebs_volume.jenkins_data.*.id, 0)}"
+{{ else -}}
+  template = "${file("${path.module}/templates/puppet_agent_user_data.yaml")}"
+
+  vars {
+    region = "${var.region}"
+
+    puppet_tar_gz_bucket_path = "${var.secrets_bucket}/${aws_s3_bucket_object.puppet-tar-gz.key}"
+
+    # These are only used in the template when running in Wing dev mode
+    wing_binary_path          = "${var.secrets_bucket}/${var.wing_binary_path}"
+    wing_version              = "${var.wing_version}"
+
+    vault_token = "${tarmak_vault_instance_role.{{.Role.Name}}.init_token}"
+    vault_ca    = "${base64encode(var.vault_ca)}"
+    vault_url   = "${var.vault_url}"
+
+    tarmak_dns_root      = "${var.private_zone}"
+    tarmak_role          = "{{.Role.Name}}"
+    tarmak_instance_pool = "{{.Name}}"
+    tarmak_cluster       = "${data.template_file.stack_name.rendered}"
+    tarmak_environment   = "${var.environment}"
+{{ if not .Role.Stateful -}}
+    tarmak_hostname      = "{{.Role.Name}}"
+    tarmak_desired_count = "${var.{{.TFName}}_min_count}"
+    tarmak_volume_id     = ""
+{{ else -}}
+    tarmak_hostname      = "{{.Role.Name}}-${count.index+1}"
+    tarmak_desired_count = "${var.{{.TFName}}_min_count}"
+{{if gt (len .Volumes) 0 -}}
+    tarmak_volume_id     = "${element(aws_ebs_volume.{{.TFName}}_{{(index .Volumes 0).Name}}.*.id, count.index)}"
+{{ end -}}
+{{ end -}}
+{{ end -}}
+  }
+}
+
+{{if not .Role.Stateful -}}
+resource "aws_launch_configuration" "{{.TFName}}" {
+  lifecycle {
+    create_before_destroy = true
+  }
+
+  spot_price = "${var.{{.TFName}}_spot_price}"
+
+  image_id             = "${var.{{.TFName}}_ami}"
+  instance_type        = "${var.{{.TFName}}_instance_type}"
+  name_prefix          = "${data.template_file.stack_name.rendered}-{{.DNSName}}-"
+  key_name             = "${var.key_name}"
+  iam_instance_profile = "${aws_iam_role.{{.TFName}}.name}"
+
+  security_groups = [
+    "${aws_security_group.{{.Role.TFName}}.id}",
+  ]
+
+  root_block_device {
+    volume_type = "${var.{{.TFName}}_root_volume_type}"
+    volume_size = "${var.{{.TFName}}_root_volume_size}"
+  }
+
+{{ range .Volumes -}}
+  ebs_block_device {
+    device_name = "{{.Device}}"
+    volume_size = {{.Size}}
+    volume_type = "{{.Type}}"
+  }
+{{ end -}}
+
+  user_data = "${data.template_file.{{.TFName}}_user_data.rendered}"
+}
+
+resource "aws_autoscaling_group" "{{.TFName}}" {
+  name                      = "${data.template_file.stack_name.rendered}-{{.DNSName}}"
+  max_size                  = "${var.{{.TFName}}_max_count}"
+  min_size                  = "${var.{{.TFName}}_min_count}"
+  health_check_grace_period = 600
+  health_check_type         = "EC2"
+  vpc_zone_identifier       = ["${var.private_subnet_ids}"]
+  launch_configuration      = "${aws_launch_configuration.{{.TFName}}.name}"
+  load_balancers            = [
+    "${aws_elb.{{.Role.TFName}}.name}",
+{{ if .Role.AWS.ELBAPIPublic -}}
+    "${aws_elb.{{.Role.TFName}}_public.name}",
+{{ end -}}
+  ]
+
+  tag {
+    key                 = "Name"
+    value               = "${data.template_file.stack_name.rendered}-{{.DNSName}}"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "Environment"
+    value               = "${var.environment}"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "Project"
+    value               = "${var.project}"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "Contact"
+    value               = "${var.contact}"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "Role"
+    value               = "{{.Role.Name}}"
+    propagate_at_launch = true
+  }
+
+  tag {
+    key                 = "tarmak_role"
+    value               = "{{.Role.Name}}"
+    propagate_at_launch = true
+  }
+
+  # Required for AWS cloud provider
+  tag {
+    key                 = "kubernetes.io/cluster/${data.template_file.stack_name.rendered}"
+    value               = ""
+    propagate_at_launch = true
+  }
+}
+{{ end -}}
+
+{{ if .Role.Stateful -}}
+resource "aws_instance" "{{.TFName}}" {
+  depends_on = [
+{{ range .Volumes -}}
+    "aws_ebs_volume.{{$instancePool.TFName}}_{{.Name}}",
+{{ end -}}
+  ]
+  count                = "${var.{{.TFName}}_min_count}"
+  availability_zone    = "${element(var.availability_zones, count.index)}"
+  ami                  = "${var.{{.TFName}}_ami}"
+  instance_type        = "${var.{{.TFName}}_instance_type}"
+  key_name             = "${var.key_name}"
+  subnet_id            = "${element(var.private_subnet_ids, count.index)}"
+  iam_instance_profile = "${aws_iam_role.{{.TFName}}.name}"
+  monitoring           = true
+
+  vpc_security_group_ids = [
+    "${aws_security_group.{{.TFName}}.id}",
+  ]
+
+  root_block_device {
+    volume_type = "gp2"
+    volume_size = "${var.{{.TFName}}_root_volume_size}"
+  }
+
+  tags {
+    Name               = "${data.template_file.stack_name.rendered}-{{.DNSName}}-${count.index+1}"
+    Environment        = "${var.environment}"
+    Project            = "${var.project}"
+    Contact            = "${var.contact}"
+    {{.TFName}}_Volume_Attach = "${data.template_file.stack_name.rendered}-k8s-{{.TFName}}-${count.index+1}"
+    Role               = "{{.Role.Name}}"
+    tarmak_role        = "{{.Role.Name}}-${count.index+1}"
+  }
+
+  user_data = "${element(data.template_file.{{.TFName}}_user_data.*.rendered, count.index)}"
+
+  lifecycle {
+    ignore_changes = ["volume_tags", "tags"]
+  }
+}
+
+# Add dynamic instance tags
+resource "awstag_ec2_tag" "{{.TFName}}" {
+  count = "${var.{{.TFName}}_min_count}"
+  ec2_id = "${element(aws_instance.{{.TFName}}.*.id, count.index)}"
+  key = "kubernetes.io/cluster/${data.template_file.stack_name.rendered}"
+  value = ""
+}
+
+# This cloudwatch alarm sets up an autorecovery of the instance in case it fails the checks
+resource "aws_cloudwatch_metric_alarm" "autorecover_{{.TFName}}" {
+  count               = "${var.{{.TFName}}_min_count}"
+  alarm_name          = "${data.template_file.stack_name.rendered}-{{.TFName}}-autorecover-${count.index}"
+  namespace           = "AWS/EC2"
+  evaluation_periods  = "5"
+  period              = "60"
+  alarm_description   = "This metric auto recovers EC2 instances"
+  alarm_actions       = ["arn:aws:automate:${var.region}:ec2:recover"]
+  statistic           = "Minimum"
+  comparison_operator = "GreaterThanThreshold"
+  threshold           = "1"
+  metric_name         = "StatusCheckFailed_System"
+
+  dimensions {
+    InstanceId = "${element(aws_instance.{{.TFName}}.*.id, count.index)}"
+  }
+}
+
+# This sets up persistent volumes per count
+{{ range .Volumes -}}
+resource "aws_ebs_volume" "{{$instancePool.TFName}}_{{.Name}}" {
+  count             = "${var.{{$instancePool.TFName}}_min_count}"
+  availability_zone = "${element(var.availability_zones, count.index)}"
+  size              = "${var.{{$instancePool.TFName}}_{{.Name}}_volume_size}"
+  type              = "${var.{{$instancePool.TFName}}_{{.Name}}_volume_type}"
+
+  tags {
+    Name        = "${data.template_file.stack_name.rendered}-{{$instancePool.DNSName}}-{{.Name}}-${count.index+1}"
+    Environment = "${var.environment}"
+    Project     = "${var.project}"
+    Contact     = "${var.contact}"
+  }
+}
+
+{{ end -}}
+resource "aws_route53_record" "{{.TFName}}" {
+  zone_id = "${var.private_zone_id}"
+  name    = "{{.Role.Name}}-${count.index+1}.${data.template_file.stack_name.rendered}"
+  type    = "A"
+  ttl     = "300"
+  records = ["${element(aws_instance.{{.TFName}}.*.private_ip, count.index)}"]
+  count   = "${var.{{.TFName}}_min_count}"
+}
+
+{{ if eq .Role.Name "etcd" -}}
+resource "aws_route53_record" "{{.TFName}}-exporter-srv" {
+  zone_id = "${var.private_zone_id}"
+  name    = "{{.Role.Name}}-exporters.${data.template_file.stack_name.rendered}"
+  type    = "SRV"
+  ttl     = "300"
+  records = [
+    "${formatlist("1 10 9115 %s.%s", aws_route53_record.{{.TFName}}.*.name, var.private_zone)}"
+  ]
+}
+{{ end -}}
+
+{{ end -}}

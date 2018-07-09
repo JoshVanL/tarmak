@@ -59,6 +59,9 @@ type InstancePool struct {
 
 	// Amazon specific settings for that instance pool
 	Amazon *InstancePoolAmazon `json:"amazon,omitempty"`
+
+	// EKS specific settings for that instance pool
+	EKS *InstancePoolAmazon `json:"amazon,omitempty"`
 }
 
 type InstancePoolKubernetes struct {
@@ -67,6 +70,13 @@ type InstancePoolKubernetes struct {
 
 // Amazon specific settings for that instance pool
 type InstancePoolAmazon struct {
+	// This fields contains ARNs for additional IAM policies to be added to
+	// this instance pool
+	AdditionalIAMPolicies []string `json:"additionalIAMPolicies,omitempty"`
+}
+
+// EKS specific settings for that instance pool
+type InstancePoolEKS struct {
 	// This fields contains ARNs for additional IAM policies to be added to
 	// this instance pool
 	AdditionalIAMPolicies []string `json:"additionalIAMPolicies,omitempty"`
