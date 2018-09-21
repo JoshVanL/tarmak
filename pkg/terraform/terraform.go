@@ -143,6 +143,8 @@ func (t *Terraform) Prepare(cluster interfaces.Cluster) error {
 	default:
 	}
 
+	t.log.Info("initialising terraform")
+
 	// run init
 	if err := t.command(
 		cluster,
@@ -184,9 +186,12 @@ func (t *Terraform) terraformWrapper(cluster interfaces.Cluster, command string,
 			t.socketPath(cluster),
 			stopRpcCh,
 		); err != nil {
-			t.log.Fatalf("error listening to unix socket: %s", err)
+			t.log.Errorf("error listening to unix socket: %s", err)
+			return
 		}
 	}()
+
+	t.log.Infof("running %s", command)
 
 	// command
 	if command == debugShell {

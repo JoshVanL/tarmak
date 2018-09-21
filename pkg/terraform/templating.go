@@ -20,6 +20,8 @@ import (
 )
 
 func (t *Terraform) GenerateCode(c interfaces.Cluster) (err error) {
+	t.log.Info("generating terraform code")
+
 	terraformCodePath := t.codePath(c)
 	if err := utils.EnsureDirectory(
 		terraformCodePath,

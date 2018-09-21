@@ -4,7 +4,6 @@ package tarmak
 import (
 	"bufio"
 	"bytes"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -58,7 +57,6 @@ func (c *CmdTerraform) Apply() error {
 		return err
 	}
 
-	c.log.Info("running apply")
 	// run terraform apply always, do not run it when in configuration only mode
 	if !c.tarmak.flags.Cluster.Apply.ConfigurationOnly {
 		err := c.tarmak.terraform.Apply(c.tarmak.Cluster())
@@ -103,9 +101,7 @@ func (c *CmdTerraform) Destroy() error {
 		return err
 	}
 
-	c.log.Info("running destroy")
-	err := c.tarmak.terraform.Destroy(c.tarmak.Cluster())
-	if err != nil {
+	if err := c.tarmak.terraform.Destroy(c.tarmak.Cluster()); err != nil {
 		return err
 	}
 
@@ -114,7 +110,7 @@ func (c *CmdTerraform) Destroy() error {
 
 func (c *CmdTerraform) Shell() error {
 	if err := c.setup(); err != nil {
-		c.log.Warnf("error setting up tarmak for terrafrom shell: %v", err)
+		return err
 	}
 
 	if err := c.verifyTerraformBinaryVersion(); err != nil {
@@ -122,6 +118,19 @@ func (c *CmdTerraform) Shell() error {
 	}
 
 	err := c.tarmak.terraform.Shell(c.tarmak.Cluster())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (c *CmdTerraform) Generate() error {
+	if err := c.setup(); err != nil {
+		return err
+	}
+
+	err := c.tarmak.terraform.GenerateCode(c.tarmak.Cluster())
 	if err != nil {
 		return err
 	}
@@ -198,19 +207,6 @@ func (c *CmdTerraform) verifyTerraformBinaryVersion() error {
 		return fmt.Errorf("Terraform binary version (%s) is greater than vendored version (%s). Please downgrade binary version to %s", terraformBinaryVersion, terraformVendoredVersion, terraformVendoredVersion)
 	} else if terraformBinaryVersionSemver.LT(terraformVendoredVersionSemver) {
 		return fmt.Errorf("Terraform binary version (%s) is less than vendored version (%s). Please upgrade binary version to %s", terraformBinaryVersion, terraformVendoredVersion, terraformVendoredVersion)
-	}
-
-	return nil
-}
-
-func (t *Tarmak) verifyImageExists() error {
-	images, err := t.Packer().List()
-	if err != nil {
-		return err
-	}
-
-	if len(images) == 0 {
-		return errors.New("no images found")
 	}
 
 	return nil
