@@ -135,6 +135,11 @@ func (c *CmdTerraform) Generate() error {
 		return err
 	}
 
+	err := c.tarmak.terraform.GenerateCode(c.tarmak.Cluster())
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
