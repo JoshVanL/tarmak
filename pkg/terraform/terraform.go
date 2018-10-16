@@ -148,19 +148,11 @@ func (t *Terraform) Prepare(cluster interfaces.Cluster) error {
 			"init",
 			"-get-plugins=false",
 			"-input=false",
-		},
-		},
-		{log: "formatting terraform code", name: "fmt", args: []string{
-			"terraform",
-			"fmt",
-			"-list=false",
-		},
-		},
+		}},
 		{log: "validating terraform code", name: "validate", args: []string{
 			"terraform",
 			"validate",
-		},
-		},
+		}},
 	} {
 		t.log.Info(c.log)
 
