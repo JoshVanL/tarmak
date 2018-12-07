@@ -2,7 +2,9 @@
 package internalversion
 
 import (
-	wing "github.com/jetstack/tarmak/pkg/apis/wing"
+	"time"
+
+	wing "github.com/jetstack/tarmak/pkg/apis/wing/v1alpha1"
 	scheme "github.com/jetstack/tarmak/pkg/wing/client/clientset/internalversion/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -20,7 +22,6 @@ type MachineDeploymentsGetter interface {
 type MachineDeploymentInterface interface {
 	Create(*wing.MachineDeployment) (*wing.MachineDeployment, error)
 	Update(*wing.MachineDeployment) (*wing.MachineDeployment, error)
-	UpdateStatus(*wing.MachineDeployment) (*wing.MachineDeployment, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
 	Get(name string, options v1.GetOptions) (*wing.MachineDeployment, error)
@@ -30,25 +31,24 @@ type MachineDeploymentInterface interface {
 	MachineDeploymentExpansion
 }
 
-// machineDeployments implements MachineDeploymentInterface
-type machineDeployments struct {
+// machinedeployments implements MachineDeploymentInterface
+type machinedeployments struct {
 	client rest.Interface
 	ns     string
 }
 
 // newMachineDeployments returns a MachineDeployments
-func newMachineDeployments(c *WingClient, namespace string) *machineDeployments {
-	return &machineDeployments{
+func newMachineDeployments(c *WingClient, namespace string) *machinedeployments {
+	return &machinedeployments{
 		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
 
-// Get takes name of the machineDeployment, and returns the corresponding machineDeployment object, and an error if there is any.
-func (c *machineDeployments) Get(name string, options v1.GetOptions) (result *wing.MachineDeployment, err error) {
+// Get takes name of the machinedeployment, and returns the corresponding machinedeployment object, and an error if there is any.
+func (c *machinedeployments) Get(name string, options v1.GetOptions) (result *wing.MachineDeployment, err error) {
 	result = &wing.MachineDeployment{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("machinedeployments").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -58,72 +58,61 @@ func (c *machineDeployments) Get(name string, options v1.GetOptions) (result *wi
 }
 
 // List takes label and field selectors, and returns the list of MachineDeployments that match those selectors.
-func (c *machineDeployments) List(opts v1.ListOptions) (result *wing.MachineDeploymentList, err error) {
+func (c *machinedeployments) List(opts v1.ListOptions) (result *wing.MachineDeploymentList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &wing.MachineDeploymentList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("machinedeployments").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
-// Watch returns a watch.Interface that watches the requested machineDeployments.
-func (c *machineDeployments) Watch(opts v1.ListOptions) (watch.Interface, error) {
+// Watch returns a watch.Interface that watches the requested machinedeployments.
+func (c *machinedeployments) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("machinedeployments").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
-// Create takes the representation of a machineDeployment and creates it.  Returns the server's representation of the machineDeployment, and an error, if there is any.
-func (c *machineDeployments) Create(machineDeployment *wing.MachineDeployment) (result *wing.MachineDeployment, err error) {
+// Create takes the representation of a machinedeployment and creates it.  Returns the server's representation of the machinedeployment, and an error, if there is any.
+func (c *machinedeployments) Create(machinedeployment *wing.MachineDeployment) (result *wing.MachineDeployment, err error) {
 	result = &wing.MachineDeployment{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("machinedeployments").
-		Body(machineDeployment).
+		Body(machinedeployment).
 		Do().
 		Into(result)
 	return
 }
 
-// Update takes the representation of a machineDeployment and updates it. Returns the server's representation of the machineDeployment, and an error, if there is any.
-func (c *machineDeployments) Update(machineDeployment *wing.MachineDeployment) (result *wing.MachineDeployment, err error) {
+// Update takes the representation of a machinedeployment and updates it. Returns the server's representation of the machinedeployment, and an error, if there is any.
+func (c *machinedeployments) Update(machinedeployment *wing.MachineDeployment) (result *wing.MachineDeployment, err error) {
 	result = &wing.MachineDeployment{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("machinedeployments").
-		Name(machineDeployment.Name).
-		Body(machineDeployment).
+		Name(machinedeployment.Name).
+		Body(machinedeployment).
 		Do().
 		Into(result)
 	return
 }
 
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *machineDeployments) UpdateStatus(machineDeployment *wing.MachineDeployment) (result *wing.MachineDeployment, err error) {
-	result = &wing.MachineDeployment{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("machinedeployments").
-		Name(machineDeployment.Name).
-		SubResource("status").
-		Body(machineDeployment).
-		Do().
-		Into(result)
-	return
-}
-
-// Delete takes name of the machineDeployment and deletes it. Returns an error if one occurs.
-func (c *machineDeployments) Delete(name string, options *v1.DeleteOptions) error {
+// Delete takes name of the machinedeployment and deletes it. Returns an error if one occurs.
+func (c *machinedeployments) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("machinedeployments").
 		Name(name).
 		Body(options).
@@ -132,21 +121,24 @@ func (c *machineDeployments) Delete(name string, options *v1.DeleteOptions) erro
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *machineDeployments) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *machinedeployments) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("machinedeployments").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()
 }
 
-// Patch applies the patch and returns the patched machineDeployment.
-func (c *machineDeployments) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *wing.MachineDeployment, err error) {
+// Patch applies the patch and returns the patched machinedeployment.
+func (c *machinedeployments) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *wing.MachineDeployment, err error) {
 	result = &wing.MachineDeployment{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("machinedeployments").
 		SubResource(subresources...).
 		Name(name).

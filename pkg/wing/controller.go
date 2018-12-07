@@ -12,6 +12,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/util/workqueue"
 
+	"github.com/jetstack/tarmak/pkg/apis/wing/common"
 	"github.com/jetstack/tarmak/pkg/apis/wing/v1alpha1"
 )
 
@@ -66,32 +67,33 @@ func (c *Controller) syncToStdout(key string) error {
 	}
 
 	if !exists {
-		// Below we will warm up our cache with a Instance, so that we will see a delete for one instance
-		fmt.Printf("Instance %s does not exist anymore\n", key)
-		instanceAPI := c.wing.clientset.WingV1alpha1().Instances(c.wing.flags.ClusterName)
-		instance := &v1alpha1.Instance{
+		// Below we will warm up our cache with a MachineDeployment, so that we will see a delete for one deployment
+		fmt.Printf("MachineDeployments %s does not exist anymore\n", key)
+		machineAPI := c.wing.clientset.WingV1alpha1().Machines(c.wing.flags.ClusterName)
+		machine := &v1alpha1.Machine{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: c.wing.flags.InstanceName,
 			},
-			Status: &v1alpha1.InstanceStatus{
-				Converge: &v1alpha1.InstanceStatusManifest{
-					State: v1alpha1.InstanceManifestStateConverging,
+			Status: &v1alpha1.MachineStatus{
+				Converge: &v1alpha1.MachineStatusManifest{
+					State: common.MachineManifestStateConverging,
 				},
 			},
 		}
-		_, err := instanceAPI.Create(instance)
+
+		_, err := machineAPI.Create(machine)
 		if err != nil {
 			return fmt.Errorf("error creating instance: %s", err)
 		}
 	} else {
 		// Note that you also have to check the uid if you have a local controlled resource, which
 		// is dependent on the actual instance, to detect that a Instance was recreated with the same name
-		instance := obj.(*v1alpha1.Instance)
+		machine := obj.(*v1alpha1.Machine)
 
 		// trigger converge if status time is older or not existing
-		if instance.Spec != nil && instance.Spec.Converge != nil && !instance.Spec.Converge.RequestTimestamp.Time.IsZero() {
-			if instance.Status != nil && instance.Status.Converge != nil && !instance.Status.Converge.LastUpdateTimestamp.Time.IsZero() {
-				if instance.Status.Converge.LastUpdateTimestamp.Time.After(instance.Spec.Converge.RequestTimestamp.Time) {
+		if machine.Spec != nil && machine.Spec.Converge != nil && !machine.Spec.Converge.RequestTimestamp.Time.IsZero() {
+			if machine.Status != nil && machine.Status.Converge != nil && !machine.Status.Converge.LastUpdateTimestamp.Time.IsZero() {
+				if machine.Status.Converge.LastUpdateTimestamp.Time.After(machine.Spec.Converge.RequestTimestamp.Time) {
 					c.log.Debug("no converge neccessary, last update was after request")
 					return nil
 				}

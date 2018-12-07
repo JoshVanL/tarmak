@@ -2,7 +2,9 @@
 package internalversion
 
 import (
-	wing "github.com/jetstack/tarmak/pkg/apis/wing"
+	"time"
+
+	wing "github.com/jetstack/tarmak/pkg/apis/wing/v1alpha1"
 	scheme "github.com/jetstack/tarmak/pkg/wing/client/clientset/internalversion/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -20,7 +22,6 @@ type MachinesGetter interface {
 type MachineInterface interface {
 	Create(*wing.Machine) (*wing.Machine, error)
 	Update(*wing.Machine) (*wing.Machine, error)
-	UpdateStatus(*wing.Machine) (*wing.Machine, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
 	Get(name string, options v1.GetOptions) (*wing.Machine, error)
@@ -48,7 +49,6 @@ func newMachines(c *WingClient, namespace string) *machines {
 func (c *machines) Get(name string, options v1.GetOptions) (result *wing.Machine, err error) {
 	result = &wing.Machine{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("machines").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -59,11 +59,15 @@ func (c *machines) Get(name string, options v1.GetOptions) (result *wing.Machine
 
 // List takes label and field selectors, and returns the list of Machines that match those selectors.
 func (c *machines) List(opts v1.ListOptions) (result *wing.MachineList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &wing.MachineList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("machines").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
@@ -71,11 +75,15 @@ func (c *machines) List(opts v1.ListOptions) (result *wing.MachineList, err erro
 
 // Watch returns a watch.Interface that watches the requested machines.
 func (c *machines) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("machines").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
@@ -83,7 +91,6 @@ func (c *machines) Watch(opts v1.ListOptions) (watch.Interface, error) {
 func (c *machines) Create(machine *wing.Machine) (result *wing.Machine, err error) {
 	result = &wing.Machine{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("machines").
 		Body(machine).
 		Do().
@@ -95,25 +102,8 @@ func (c *machines) Create(machine *wing.Machine) (result *wing.Machine, err erro
 func (c *machines) Update(machine *wing.Machine) (result *wing.Machine, err error) {
 	result = &wing.Machine{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("machines").
 		Name(machine.Name).
-		Body(machine).
-		Do().
-		Into(result)
-	return
-}
-
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *machines) UpdateStatus(machine *wing.Machine) (result *wing.Machine, err error) {
-	result = &wing.Machine{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("machines").
-		Name(machine.Name).
-		SubResource("status").
 		Body(machine).
 		Do().
 		Into(result)
@@ -123,7 +113,6 @@ func (c *machines) UpdateStatus(machine *wing.Machine) (result *wing.Machine, er
 // Delete takes name of the machine and deletes it. Returns an error if one occurs.
 func (c *machines) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("machines").
 		Name(name).
 		Body(options).
@@ -133,10 +122,14 @@ func (c *machines) Delete(name string, options *v1.DeleteOptions) error {
 
 // DeleteCollection deletes a collection of objects.
 func (c *machines) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("machines").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()
@@ -146,7 +139,6 @@ func (c *machines) DeleteCollection(options *v1.DeleteOptions, listOptions v1.Li
 func (c *machines) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *wing.Machine, err error) {
 	result = &wing.Machine{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("machines").
 		SubResource(subresources...).
 		Name(name).

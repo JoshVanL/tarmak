@@ -9,11 +9,11 @@ import (
 type WingInterface interface {
 	RESTClient() rest.Interface
 	MachinesGetter
-	MachineDeploymentsGetter
 	MachineSetsGetter
+	MachineDeploymentsGetter
 }
 
-// WingClient is used to interact with features provided by the wing.tarmak.io group.
+// WingClient is used to interact with features provided by the wing.k8s.io group.
 type WingClient struct {
 	restClient rest.Interface
 }
@@ -22,12 +22,12 @@ func (c *WingClient) Machines(namespace string) MachineInterface {
 	return newMachines(c, namespace)
 }
 
-func (c *WingClient) MachineDeployments(namespace string) MachineDeploymentInterface {
-	return newMachineDeployments(c, namespace)
-}
-
 func (c *WingClient) MachineSets(namespace string) MachineSetInterface {
 	return newMachineSets(c, namespace)
+}
+
+func (c *WingClient) MachineDeployments(namespace string) MachineDeploymentInterface {
+	return newMachineDeployments(c, namespace)
 }
 
 // NewForConfig creates a new WingClient for the given config.
@@ -59,17 +59,12 @@ func New(c rest.Interface) *WingClient {
 }
 
 func setConfigDefaults(config *rest.Config) error {
-	g, err := scheme.Registry.Group("wing.tarmak.io")
-	if err != nil {
-		return err
-	}
-
 	config.APIPath = "/apis"
 	if config.UserAgent == "" {
 		config.UserAgent = rest.DefaultKubernetesUserAgent()
 	}
-	if config.GroupVersion == nil || config.GroupVersion.Group != g.GroupVersion.Group {
-		gv := g.GroupVersion
+	if config.GroupVersion == nil || config.GroupVersion.Group != scheme.Scheme.PrioritizedVersionsForGroup("wing.k8s.io")[0].Group {
+		gv := scheme.Scheme.PrioritizedVersionsForGroup("wing.k8s.io")[0]
 		config.GroupVersion = &gv
 	}
 	config.NegotiatedSerializer = scheme.Codecs

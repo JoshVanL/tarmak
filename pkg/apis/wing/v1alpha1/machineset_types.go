@@ -4,22 +4,8 @@ package v1alpha1
 import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/jetstack/wing-api/pkg/apis/wing/common"
+	"github.com/jetstack/tarmak/pkg/apis/wing/common"
 )
-
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-
-// Machineset
-// +k8s:openapi-gen=true
-// +resource:path=machinesets,strategy=MachineSetSrategy
-type MachineSet struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   MachineSetSpec   `json:"spec,omitempty"`
-	Status MachineSetStatus `json:"status,omitempty"`
-}
 
 // MachineSetSpec defines the desired state of MachineSet
 type MachineSetSpec struct {
@@ -102,4 +88,30 @@ type MachineSetStatus struct {
 	//ErrorReason *string `json:"errorReason,omitempty"`
 	// +optional
 	ErrorMessage *string `json:"errorMessage,omitempty"`
+}
+
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// MachineSet is the Schema for the machinesets API
+// +k8s:openapi-gen=true
+type MachineSet struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   *MachineSetSpec   `json:"spec,omitempty"`
+	Status *MachineSetStatus `json:"status,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// MachineSetList contains a list of MachineSet
+type MachineSetList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []MachineSet `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&MachineSet{}, &MachineSetList{})
 }

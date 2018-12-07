@@ -5,7 +5,7 @@
 package internalversion
 
 import (
-	wing "github.com/jetstack/tarmak/pkg/apis/wing"
+	wing "github.com/jetstack/tarmak/pkg/apis/wing/v1alpha1"
 	clientset_internalversion "github.com/jetstack/tarmak/pkg/wing/client/clientset/internalversion"
 	internalinterfaces "github.com/jetstack/tarmak/pkg/wing/client/informers/internalversion/internalinterfaces"
 	internalversion "github.com/jetstack/tarmak/pkg/wing/client/listers/wing/internalversion"

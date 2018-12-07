@@ -5,24 +5,9 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
 
-	"github.com/jetstack/wing-api/pkg/apis/wing/common"
+	"github.com/jetstack/tarmak/pkg/apis/wing/common"
 )
 
-// +genclient
-// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
-// MachineDeployment is the Schema for the machinedeployments API
-
-// +k8s:openapi-gen=true
-// +resource:path=machinedeployments,strategy=MachineDeploymentSrategy
-type MachineDeployment struct {
-	metav1.TypeMeta   `json:",inline"`
-	metav1.ObjectMeta `json:"metadata,omitempty"`
-
-	Spec   MachineDeploymentSpec   `json:"spec,omitempty"`
-	Status MachineDeploymentStatus `json:"status,omitempty"`
-}
-
-/// [MachineDeploymentSpec]
 // MachineDeploymentSpec defines the desired state of MachineDeployment
 type MachineDeploymentSpec struct {
 	// Number of desired machines. Defaults to 1.
@@ -67,10 +52,6 @@ type MachineDeploymentSpec struct {
 	ProgressDeadlineSeconds *int32 `json:"progressDeadlineSeconds,omitempty"`
 }
 
-/// [MachineDeploymentSpec]
-
-// MachineDeploymentStrategy describes how to replace existing machines
-// with new ones.
 type MachineDeploymentStrategy struct {
 	// Type of deployment. Currently the only supported strategy is
 	// "RollingUpdate".
@@ -118,10 +99,6 @@ type MachineRollingUpdateDeployment struct {
 	MaxSurge *intstr.IntOrString `json:"maxSurge,omitempty" protobuf:"bytes,2,opt,name=maxSurge"`
 }
 
-/// [MachineRollingUpdateDeployment]
-
-/// [MachineDeploymentStatus]
-// MachineDeploymentStatus defines the observed state of MachineDeployment
 type MachineDeploymentStatus struct {
 	// The generation observed by the deployment controller.
 	// +optional
@@ -153,4 +130,30 @@ type MachineDeploymentStatus struct {
 	// that still have not been created.
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty" protobuf:"varint,5,opt,name=unavailableReplicas"`
+}
+
+// +genclient
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// MachineDeployment is the Schema for the machinedeployments API
+// +k8s:openapi-gen=true
+type MachineDeployment struct {
+	metav1.TypeMeta   `json:",inline"`
+	metav1.ObjectMeta `json:"metadata,omitempty"`
+
+	Spec   *MachineDeploymentSpec   `json:"spec,omitempty"`
+	Status *MachineDeploymentStatus `json:"status,omitempty"`
+}
+
+// +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
+
+// MachineDeploymentList contains a list of MachineDeployment
+type MachineDeploymentList struct {
+	metav1.TypeMeta `json:",inline"`
+	metav1.ListMeta `json:"metadata,omitempty"`
+	Items           []MachineDeployment `json:"items"`
+}
+
+func init() {
+	SchemeBuilder.Register(&MachineDeployment{}, &MachineDeploymentList{})
 }

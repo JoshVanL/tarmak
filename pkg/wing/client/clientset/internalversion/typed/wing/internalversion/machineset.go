@@ -2,7 +2,9 @@
 package internalversion
 
 import (
-	wing "github.com/jetstack/tarmak/pkg/apis/wing"
+	"time"
+
+	wing "github.com/jetstack/tarmak/pkg/apis/wing/v1alpha1"
 	scheme "github.com/jetstack/tarmak/pkg/wing/client/clientset/internalversion/scheme"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	types "k8s.io/apimachinery/pkg/types"
@@ -20,7 +22,6 @@ type MachineSetsGetter interface {
 type MachineSetInterface interface {
 	Create(*wing.MachineSet) (*wing.MachineSet, error)
 	Update(*wing.MachineSet) (*wing.MachineSet, error)
-	UpdateStatus(*wing.MachineSet) (*wing.MachineSet, error)
 	Delete(name string, options *v1.DeleteOptions) error
 	DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error
 	Get(name string, options v1.GetOptions) (*wing.MachineSet, error)
@@ -30,25 +31,24 @@ type MachineSetInterface interface {
 	MachineSetExpansion
 }
 
-// machineSets implements MachineSetInterface
-type machineSets struct {
+// machinesets implements MachineSetInterface
+type machinesets struct {
 	client rest.Interface
 	ns     string
 }
 
 // newMachineSets returns a MachineSets
-func newMachineSets(c *WingClient, namespace string) *machineSets {
-	return &machineSets{
+func newMachineSets(c *WingClient, namespace string) *machinesets {
+	return &machinesets{
 		client: c.RESTClient(),
 		ns:     namespace,
 	}
 }
 
-// Get takes name of the machineSet, and returns the corresponding machineSet object, and an error if there is any.
-func (c *machineSets) Get(name string, options v1.GetOptions) (result *wing.MachineSet, err error) {
+// Get takes name of the machineset, and returns the corresponding machineset object, and an error if there is any.
+func (c *machinesets) Get(name string, options v1.GetOptions) (result *wing.MachineSet, err error) {
 	result = &wing.MachineSet{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("machinesets").
 		Name(name).
 		VersionedParams(&options, scheme.ParameterCodec).
@@ -58,72 +58,61 @@ func (c *machineSets) Get(name string, options v1.GetOptions) (result *wing.Mach
 }
 
 // List takes label and field selectors, and returns the list of MachineSets that match those selectors.
-func (c *machineSets) List(opts v1.ListOptions) (result *wing.MachineSetList, err error) {
+func (c *machinesets) List(opts v1.ListOptions) (result *wing.MachineSetList, err error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	result = &wing.MachineSetList{}
 	err = c.client.Get().
-		Namespace(c.ns).
 		Resource("machinesets").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Do().
 		Into(result)
 	return
 }
 
-// Watch returns a watch.Interface that watches the requested machineSets.
-func (c *machineSets) Watch(opts v1.ListOptions) (watch.Interface, error) {
+// Watch returns a watch.Interface that watches the requested machinesets.
+func (c *machinesets) Watch(opts v1.ListOptions) (watch.Interface, error) {
+	var timeout time.Duration
+	if opts.TimeoutSeconds != nil {
+		timeout = time.Duration(*opts.TimeoutSeconds) * time.Second
+	}
 	opts.Watch = true
 	return c.client.Get().
-		Namespace(c.ns).
 		Resource("machinesets").
 		VersionedParams(&opts, scheme.ParameterCodec).
+		Timeout(timeout).
 		Watch()
 }
 
-// Create takes the representation of a machineSet and creates it.  Returns the server's representation of the machineSet, and an error, if there is any.
-func (c *machineSets) Create(machineSet *wing.MachineSet) (result *wing.MachineSet, err error) {
+// Create takes the representation of a machineset and creates it.  Returns the server's representation of the machineset, and an error, if there is any.
+func (c *machinesets) Create(machineset *wing.MachineSet) (result *wing.MachineSet, err error) {
 	result = &wing.MachineSet{}
 	err = c.client.Post().
-		Namespace(c.ns).
 		Resource("machinesets").
-		Body(machineSet).
+		Body(machineset).
 		Do().
 		Into(result)
 	return
 }
 
-// Update takes the representation of a machineSet and updates it. Returns the server's representation of the machineSet, and an error, if there is any.
-func (c *machineSets) Update(machineSet *wing.MachineSet) (result *wing.MachineSet, err error) {
+// Update takes the representation of a machineset and updates it. Returns the server's representation of the machineset, and an error, if there is any.
+func (c *machinesets) Update(machineset *wing.MachineSet) (result *wing.MachineSet, err error) {
 	result = &wing.MachineSet{}
 	err = c.client.Put().
-		Namespace(c.ns).
 		Resource("machinesets").
-		Name(machineSet.Name).
-		Body(machineSet).
+		Name(machineset.Name).
+		Body(machineset).
 		Do().
 		Into(result)
 	return
 }
 
-// UpdateStatus was generated because the type contains a Status member.
-// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
-
-func (c *machineSets) UpdateStatus(machineSet *wing.MachineSet) (result *wing.MachineSet, err error) {
-	result = &wing.MachineSet{}
-	err = c.client.Put().
-		Namespace(c.ns).
-		Resource("machinesets").
-		Name(machineSet.Name).
-		SubResource("status").
-		Body(machineSet).
-		Do().
-		Into(result)
-	return
-}
-
-// Delete takes name of the machineSet and deletes it. Returns an error if one occurs.
-func (c *machineSets) Delete(name string, options *v1.DeleteOptions) error {
+// Delete takes name of the machineset and deletes it. Returns an error if one occurs.
+func (c *machinesets) Delete(name string, options *v1.DeleteOptions) error {
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("machinesets").
 		Name(name).
 		Body(options).
@@ -132,21 +121,24 @@ func (c *machineSets) Delete(name string, options *v1.DeleteOptions) error {
 }
 
 // DeleteCollection deletes a collection of objects.
-func (c *machineSets) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+func (c *machinesets) DeleteCollection(options *v1.DeleteOptions, listOptions v1.ListOptions) error {
+	var timeout time.Duration
+	if listOptions.TimeoutSeconds != nil {
+		timeout = time.Duration(*listOptions.TimeoutSeconds) * time.Second
+	}
 	return c.client.Delete().
-		Namespace(c.ns).
 		Resource("machinesets").
 		VersionedParams(&listOptions, scheme.ParameterCodec).
+		Timeout(timeout).
 		Body(options).
 		Do().
 		Error()
 }
 
-// Patch applies the patch and returns the patched machineSet.
-func (c *machineSets) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *wing.MachineSet, err error) {
+// Patch applies the patch and returns the patched machineset.
+func (c *machinesets) Patch(name string, pt types.PatchType, data []byte, subresources ...string) (result *wing.MachineSet, err error) {
 	result = &wing.MachineSet{}
 	err = c.client.Patch(pt).
-		Namespace(c.ns).
 		Resource("machinesets").
 		SubResource(subresources...).
 		Name(name).

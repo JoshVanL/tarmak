@@ -5,7 +5,7 @@
 package internalversion
 
 import (
-	wing "github.com/jetstack/tarmak/pkg/apis/wing"
+	wing "github.com/jetstack/tarmak/pkg/apis/wing/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"

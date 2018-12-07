@@ -10,10 +10,11 @@ import (
 	"strings"
 	"time"
 
-	commonssh "github.com/hashicorp/packer/common/ssh"
 	"github.com/hashicorp/packer/communicator/ssh"
 	"github.com/hashicorp/packer/helper/multistep"
+	helperssh "github.com/hashicorp/packer/helper/ssh"
 	"github.com/hashicorp/packer/packer"
+	"github.com/mitchellh/go-homedir"
 	gossh "golang.org/x/crypto/ssh"
 	"golang.org/x/crypto/ssh/agent"
 	"golang.org/x/net/proxy"
@@ -177,9 +178,9 @@ func (s *StepConnectSSH) waitForSSH(state multistep.StateBag, cancel <-chan stru
 
 		// Then we attempt to connect via SSH
 		config := &ssh.Config{
-			Connection: connFunc,
-			SSHConfig:  sshConfig,
-			Pty:        s.Config.SSHPty,
+			Connection:             connFunc,
+			SSHConfig:              sshConfig,
+			Pty:                    s.Config.SSHPty,
 			DisableAgentForwarding: s.Config.SSHDisableAgentForwarding,
 			UseSftp:                s.Config.SSHFileTransferMethod == "sftp",
 			KeepAliveInterval:      s.Config.SSHKeepAliveInterval,
@@ -225,8 +226,13 @@ func sshBastionConfig(config *Config) (*gossh.ClientConfig, error) {
 				ssh.PasswordKeyboardInteractive(config.SSHBastionPassword)))
 	}
 
-	if config.SSHBastionPrivateKey != "" {
-		signer, err := commonssh.FileSigner(config.SSHBastionPrivateKey)
+	if config.SSHBastionPrivateKeyFile != "" {
+		path, err := homedir.Expand(config.SSHBastionPrivateKeyFile)
+		if err != nil {
+			return nil, fmt.Errorf(
+				"Error expanding path for SSH bastion private key: %s", err)
+		}
+		signer, err := helperssh.FileSigner(path)
 		if err != nil {
 			return nil, err
 		}

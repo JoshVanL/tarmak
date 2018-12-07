@@ -6,7 +6,7 @@ package internalversion
 
 import (
 	"fmt"
-	wing "github.com/jetstack/tarmak/pkg/apis/wing"
+	wing "github.com/jetstack/tarmak/pkg/apis/wing/v1alpha1"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	cache "k8s.io/client-go/tools/cache"
 )
