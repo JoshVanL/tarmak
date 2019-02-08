@@ -8,6 +8,7 @@ import (
 
 	cleanhttp "github.com/hashicorp/go-cleanhttp"
 	vault "github.com/hashicorp/vault/api"
+	"github.com/sirupsen/logrus"
 
 	"github.com/jetstack/tarmak/pkg/tarmak/interfaces"
 )
@@ -81,11 +82,12 @@ func (v *vaultTunnel) VaultClient() *vault.Client {
 }
 
 func (v *vaultTunnel) Status() int {
-	if v.tunnelError != nil {
-		return VaultStateErr
-	}
+	//if v.tunnelError != nil {
+	//	return VaultStateErr
+	//}
 
 	initStatus, err := v.client.Sys().InitStatus()
+	logrus.Errorf("init status error: %s", err)
 	if err != nil {
 		return VaultStateErr
 	}
@@ -95,6 +97,7 @@ func (v *vaultTunnel) Status() int {
 	}
 
 	sealStatus, err := v.client.Sys().SealStatus()
+	logrus.Errorf("seal status error: %s", err)
 	if err != nil {
 		return VaultStateErr
 	}
