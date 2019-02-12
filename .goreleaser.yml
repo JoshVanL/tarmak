@@ -25,10 +25,5 @@ archive:
   format: binary
 release:
   github:
-    owner: jetstack
+    owner: joshvanl
     name: tarmak
-
-sign:
-  artifacts: checksum
-  signature: "${artifact}.asc"
-  args: ["-u", "tech+releases@jetstack.io", "--armor", "--output", "${signature}", "--detach-sign", "${artifact}"]
